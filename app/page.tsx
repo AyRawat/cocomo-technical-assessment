@@ -3,8 +3,9 @@ import { Todo } from '@prisma/client';
 import { useState, useEffect } from 'react';
 
 export default function Home() {
-  const [newTodo, setNewTodo] = useState('');
+  const [newTodoTitle, setNewTodoTitle] = useState('');
   const [todos, setTodos] = useState([]);
+  const [newTodoDueDate, setNewTodoDueDate] = useState('');
 
   useEffect(() => {
     fetchTodos();
@@ -21,21 +22,22 @@ export default function Home() {
   };
 
   const handleAddTodo = async () => {
-    if (!newTodo.trim()) return;
+    if (!newTodoTitle.trim()) return;
     try {
       await fetch('/api/todos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newTodo }),
+        body: JSON.stringify({ title: newTodoTitle, dueDate: newTodoDueDate }),
       });
-      setNewTodo('');
+      setNewTodoTitle('');
+      setNewTodoDueDate('');
       fetchTodos();
     } catch (error) {
       console.error('Failed to add todo:', error);
     }
   };
 
-  const handleDeleteTodo = async (id:any) => {
+  const handleDeleteTodo = async (id:string) => {
     try {
       await fetch(`/api/todos/${id}`, {
         method: 'DELETE',
@@ -44,6 +46,10 @@ export default function Home() {
     } catch (error) {
       console.error('Failed to delete todo:', error);
     }
+  };
+
+  const isPastDue = (dueDate:string) => {
+    return new Date(dueDate) < new Date();
   };
 
   return (
@@ -55,11 +61,15 @@ export default function Home() {
             type="text"
             className="flex-grow p-3 rounded-l-full focus:outline-none text-gray-700"
             placeholder="Add a new todo"
-            value={newTodo}
-            onChange={(e) => setNewTodo(e.target.value)}
-          
+            value={newTodoTitle}
+            onChange={(e) => setNewTodoTitle(e.target.value)}
           />
-          <input type="date" />
+          <input 
+            type="date" 
+            className="text-gray-700"
+            value={newTodoDueDate}
+            onChange={(e) => setNewTodoDueDate(e.target.value)}
+          />
           <button
             onClick={handleAddTodo}
             className="bg-white text-indigo-600 p-3 rounded-r-full hover:bg-gray-100 transition duration-300"
@@ -71,14 +81,19 @@ export default function Home() {
           {todos.map((todo:Todo) => (
             <li
               key={todo.id}
-              className="flex justify-between items-center bg-white bg-opacity-90 p-4 mb-4 rounded-lg shadow-lg"
+              className={`flex justify-between items-center bg-white bg-opacity-90 p-4 mb-4 rounded-lg shadow-lg text-gray-700`}
             >
-              <span className="text-gray-800">{todo.title}</span>
+              <div>
+                <span>{todo.title}</span>
+                <br />
+                <span className={`${isPastDue(todo.dueDate) ? 'text-red-600' : 'text-gray-800'}`}>
+                  Due: {new Date(todo.dueDate).toLocaleDateString()}
+                </span>
+              </div>
               <button
                 onClick={() => handleDeleteTodo(todo.id)}
                 className="text-red-500 hover:text-red-700 transition duration-300"
               >
-                {/* Delete Icon */}
                 <svg
                   className="w-6 h-6"
                   fill="none"
